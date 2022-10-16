@@ -1,0 +1,73 @@
+version: '0.1'
+
+networks:
+  intranet:
+    ipam:
+      # name: intranet
+      driver: default
+      # attachable: false
+      config:
+        - subnet: "10.1.0.0/24"
+          gateway: "10.1.0.1"
+services:
+  reverse-proxy:
+    image: nginx:latest
+    ports:
+     - "8080:80"
+    volumes:
+     - ~/.minikube/profiles/minikube/client.key:/etc/nginx/certs/minikube-client.key
+     - ~/.minikube/profiles/minikube/client.crt:/etc/nginx/certs/minikube-client.crt
+     - /etc/nginx/conf.d/:/etc/nginx/conf.d
+     - /etc/nginx/.htpasswd:/etc/nginx/.htpasswd
+    networks:
+      intranet:
+        ipv4_address: "10.1.0.3"
+    depends_on:
+      - minikube
+  minikube:
+    image: gcr.io/k8s-minikube/kicbase:v0.0.34
+    # build:
+    #   context: ./Path
+    #   dockerfile: Dockerfile
+    ports:
+     - 2376
+     - 32443
+     - 5000
+    expose:
+      - 22
+      - 8443
+
+    volumes:
+     - type: bind
+       source: /lib/modules
+       target: /lib/modules
+      #  mode: ro
+      #  rw: false
+      #  propagation: "rprivate"
+     - type: volume
+      #  name: minikube
+       source: /var/_data
+       target: /var
+      #  driver: local
+      #  mode: z
+      #  rw: true
+
+    environment:
+      container: docker
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    entrypoint:
+      - /usr/local/bin/entrypoit
+      - /sbin/init
+
+    labels:
+      - "created_by.minikube.sigs.k8s.io=true"
+      - "mode.minikube.sigs.k8s.io=minikube"
+      - "name.minikube.sigs.k8s.io=minikube"
+      - "role.minikube.sigs.k8s.io"
+
+    networks:
+      intranet:
+        ipv4_address: "10.1.0.2"
+  # web-app:
+  # db-mysql:
